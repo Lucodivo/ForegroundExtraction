@@ -6,6 +6,7 @@ import imgconstants as imgc
 
 def extract_foreground(imgloc):
   img = cv2.imread(imgloc)
+  img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
   aspect_ratio = float(img.shape[0])/img.shape[1]
   set_w = 450
   set_h = int(set_w*aspect_ratio)
@@ -13,7 +14,7 @@ def extract_foreground(imgloc):
   if img.shape[1] > set_w:
     img = scipy.misc.imresize(img, (set_h, set_w, 3))
 
-  min_threshold = 25 # 25 and 75 does best for sheets
+  min_threshold = 25 # 25 and 75 does best for pictures on sheets
   max_threshold = 75
   # apertureSize must be 1,3,5, or 7
   edgeImg = cv2.Canny(img, min_threshold, max_threshold, apertureSize=3)  # threshold may need to be a function of dimensions of image
@@ -53,7 +54,6 @@ def extract_foreground(imgloc):
         cv2.drawContours(img, [contour], 0, (0,0,0),5*borderMultiplier, cv2.CV_AA, maxLevel=1)
 
     significant.sort(key=lambda x: x[1])
-    print imgloc + " COUNTER: " + str(counter)
 
     return [x[0] for x in significant];
 
@@ -78,7 +78,6 @@ def extract_foreground(imgloc):
     else:
       foundContour = True
 
-
   # Invert mask
   mask = np.logical_not(mask)
 
@@ -86,4 +85,5 @@ def extract_foreground(imgloc):
   img[mask] = 0
 
   return img
+
 
