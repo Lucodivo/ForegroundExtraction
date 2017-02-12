@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import scipy
 from scipy import misc
+import imgconstants as imgc
 
 def extract_foreground(imgloc):
   img = cv2.imread(imgloc)
@@ -11,8 +12,10 @@ def extract_foreground(imgloc):
   kernel_erode = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
   kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
 
-  edgeImg = cv2.dilate(edgeImg, kernel_dilate, iterations=3)
-  edgeImg = cv2.erode(edgeImg, kernel_erode, iterations=2)
+  # cv2.namedWindow('frame', flags=cv2.WINDOW_NORMAL)
+  # cv2.imshow('frame',edgeImg)
+  # cv2.waitKey(0)
+  # cv2.destroyAllWindows()
 
   def findSignificantContours(img, edgeImg):
     contours, heirarchy = cv2.findContours(edgeImg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -28,7 +31,7 @@ def extract_foreground(imgloc):
 
     # From among them, find the contours with large surface area.
     significant = []
-    tooSmall = edgeImg.size * 5 / 100  # If contour isn't covering 5% of total area of image then it probably is too small
+    tooSmall = edgeImg.size * 10 / 100  # If contour isn't covering 5% of total area of image then it probably is too small
     for tupl in level1:
       contour = contours[tupl[0]];
       area = cv2.contourArea(contour)
@@ -36,20 +39,30 @@ def extract_foreground(imgloc):
         significant.append([contour, area])
 
         # Draw the contour on the original image (this helps remove border)
-        cv2.drawContours(img, [contour], 0, (0,0,0),3, cv2.CV_AA, maxLevel=1)
+        cv2.drawContours(img, [contour], 0, (0,0,0),5, cv2.CV_AA, maxLevel=1)
 
     significant.sort(key=lambda x: x[1])
     return [x[0] for x in significant];
 
-  edgeImg_8u = np.asarray(edgeImg, np.uint8)
+  foundContour = False
+  while not foundContour:
+    edgeImg_8u = np.asarray(edgeImg, np.uint8)
 
-  # Find contours
-  significant = findSignificantContours(img, edgeImg_8u)
+    # Find contours
+    significant = findSignificantContours(img, edgeImg_8u)
 
-  # Mask
-  mask = edgeImg.copy()
-  mask[mask > 0] = 0
-  cv2.fillPoly(mask, significant, 255)
+    # Mask
+    mask = edgeImg.copy()
+    mask[mask > 0] = 0
+    cv2.fillPoly(mask, significant, 255)
+
+    if mask[img.shape[0]/2, img.shape[1]/2] == 0:
+      edgeImg = cv2.dilate(edgeImg, kernel_dilate, iterations=2)
+      edgeImg = cv2.erode(edgeImg, kernel_erode, iterations=1)
+    else:
+      foundContour = True
+
+
   # Invert mask
   mask = np.logical_not(mask)
 
@@ -57,3 +70,5 @@ def extract_foreground(imgloc):
   img[mask] = 0
 
   return img
+
+extract_foreground(imgc.H3)
