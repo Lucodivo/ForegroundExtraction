@@ -1,0 +1,4 @@
+.DS_Store
+TestOutput/
+foreground_extraction.pyc
+imgconstants.pyc
